@@ -1,0 +1,17 @@
+[package]
+name = "th-audit"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4.40", features = ["serde"] }
+warn = "0.2.2"
+libtw2-teehistorian = { git = "https://github.com/heinrich5991/libtw2.git" }
+libtw2-packer = { git = "https://github.com/heinrich5991/libtw2.git" }
+libtw2-gamenet-ddnet = { git = "https://github.com/heinrich5991/libtw2.git" }
+libtw2-gamenet-teeworlds-0-7 = { git = "https://github.com/heinrich5991/libtw2.git" }
+
+clap = { version = "4.5.31", features = ["cargo"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
