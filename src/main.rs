@@ -164,8 +164,19 @@ fn process_file(p: &Path) -> Result<(), Error> {
                     continue;
                 }
 
+                // Edgecase: Timeout rejoins can cause a post-drop pre-startinfo command
+                //assert!(players[cc.cid as usize].is_some());
+                if players[cc.cid as usize].is_none() {
+                    continue;
+                }
+
                 let p = players[cc.cid as usize].as_mut().unwrap();
-                assert!(p.info.is_some());
+
+                // Edgecase: ditto
+                //assert!(p.info.is_some());
+                if p.info.is_none() {
+                    continue;
+                }
 
                 let info = p.info.as_ref().unwrap();
 
