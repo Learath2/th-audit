@@ -1,12 +1,12 @@
 use chrono::DateTime;
-use std::{borrow::Cow, path::Path};
+use clap::{arg, command};
 use libtw2_gamenet_ddnet::msg::Game as GameDDNet;
 use libtw2_gamenet_teeworlds_0_7::msg::Game as GameSeven;
 use libtw2_packer::Unpacker;
 use libtw2_teehistorian::{Buffer, Error, Reader};
-use clap::{command, arg};
-use warn::Ignore;
 use serde::Serialize;
+use std::{borrow::Cow, path::Path};
+use warn::Ignore;
 
 #[derive(Debug, Serialize)]
 struct AuditItem {
@@ -35,14 +35,16 @@ struct PlayerSlot {
 
 fn process_file(p: &Path) -> Result<(), Error> {
     let mut buf = Buffer::new();
-    let (h, mut r) = Reader::open(
-        p,
-        &mut buf,
-    )?;
+    let (h, mut r) = Reader::open(p, &mut buf)?;
 
     let mut tick = None;
     let start_time = h.timestamp;
-    let country = h.config.get("sv_sql_servername").map(|c| c.as_ref()).unwrap_or("").to_owned();
+    let country = h
+        .config
+        .get("sv_sql_servername")
+        .map(|c| c.as_ref())
+        .unwrap_or("")
+        .to_owned();
 
     let mut audit: Vec<AuditItem> = vec![];
     let mut players: [Option<PlayerSlot>; 64] = [const { None }; 64];
@@ -161,7 +163,7 @@ fn process_file(p: &Path) -> Result<(), Error> {
                 assert!(p.info.is_some());
 
                 let info = p.info.as_ref().unwrap();
-                
+
                 if info.rcon_user.is_none() {
                     continue;
                 }
@@ -169,9 +171,8 @@ fn process_file(p: &Path) -> Result<(), Error> {
                 let time_offset = chrono::TimeDelta::seconds(tick.unwrap() as i64 / 50);
                 let timestamp = start_time + time_offset;
 
-               
                 unsafe {
-                    audit.push(AuditItem{
+                    audit.push(AuditItem {
                         timestamp,
                         rcon_user: info.rcon_user.clone().unwrap(),
                         player_name: info.name.clone(),
@@ -193,9 +194,7 @@ fn process_file(p: &Path) -> Result<(), Error> {
 
 fn main() -> Result<(), Error> {
     let matches = command!()
-        .arg(
-            arg!(<file> "teehistorian file to parse")
-        )
+        .arg(arg!(<file> "teehistorian file to parse"))
         .get_matches();
 
     let file = matches.get_one::<String>("file").unwrap();
