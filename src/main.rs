@@ -1,5 +1,5 @@
 use chrono::DateTime;
-use std::path::Path;
+use std::{borrow::Cow, path::Path};
 use libtw2_gamenet_ddnet::msg::Game as GameDDNet;
 use libtw2_gamenet_teeworlds_0_7::msg::Game as GameSeven;
 use libtw2_packer::Unpacker;
@@ -14,6 +14,7 @@ struct AuditItem {
     rcon_user: String,
     player_name: String,
     command: String,
+    country: String,
 }
 
 #[derive(Default)]
@@ -41,6 +42,7 @@ fn process_file(p: &Path) -> Result<(), Error> {
 
     let mut tick = None;
     let start_time = h.timestamp;
+    let country = h.config.get("sv_sql_servername").map(|c| c.as_ref()).unwrap_or("").to_owned();
 
     let mut audit: Vec<AuditItem> = vec![];
     let mut players: [Option<PlayerSlot>; 64] = [const { None }; 64];
@@ -173,7 +175,8 @@ fn process_file(p: &Path) -> Result<(), Error> {
                         timestamp,
                         rcon_user: info.rcon_user.clone().unwrap(),
                         player_name: info.name.clone(),
-                        command: std::str::from_utf8_unchecked(cc.cmd).into()
+                        command: std::str::from_utf8_unchecked(cc.cmd).into(),
+                        country: country.to_owned(),
                     })
                 }
             }
