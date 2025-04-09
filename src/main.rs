@@ -90,7 +90,11 @@ fn process_file(p: &Path) -> Result<(), Error> {
                         if let Ok(msg) = GameDDNet::decode(&mut Ignore, &mut up) {
                             match msg {
                                 GameDDNet::ClStartInfo(si) => {
-                                    assert!(p.info.is_none());
+                                    // Drop for now, correct would be to track PlayerReady
+                                    if p.info.is_some() {
+                                        continue;
+                                    }
+
                                     p.info = Some(Default::default());
                                     unsafe {
                                         if let Some(info) = &mut p.info {
