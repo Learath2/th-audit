@@ -88,6 +88,16 @@ fn process_file(p: &Path) -> Result<(), Error> {
                             players[d.cid as usize] = None;
                         }
                         libtw2_teehistorian::Item::Message(m) => {
+                            // Edgecase: Join might be missing ddnet/ddnet#10046
+                            //assert!(players[m.cid as usize].is_some());
+                            if players[m.cid as usize].is_none() {
+                                players[m.cid as usize] = Some(PlayerSlot{
+                                    info: None,
+                                    // This is just a hope, this information is lost
+                                    ver: ProtocolVersion::DDNet,
+                                });
+                            }
+
                             let mut up = Unpacker::new(m.msg);
                             let p = players[m.cid as usize].as_mut().unwrap();
                             match p.ver {
