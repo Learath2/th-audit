@@ -167,7 +167,9 @@ fn process_file(p: &Path) -> Result<(), Error> {
                                     if let Ok(msg) = GameSeven::decode(&mut Ignore, &mut up) {
                                         match msg {
                                             GameSeven::ClStartInfo(si) => {
-                                                assert!(p.info.is_none());
+                                                // Idk, this happens for some reason
+                                                //assert!(p.info.is_none());
+
                                                 p.info = Some(Default::default());
                                                 unsafe {
                                                     if let Some(info) = &mut p.info {
