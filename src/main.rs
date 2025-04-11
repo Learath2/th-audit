@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use clap::{arg, command};
+use core::panic;
 use libtw2_gamenet_ddnet::msg::Game as GameDDNet;
 use libtw2_gamenet_teeworlds_0_7::msg::Game as GameSeven;
 use libtw2_packer::Unpacker;
@@ -21,7 +22,6 @@ struct AuditItem {
 #[derive(Default)]
 struct PlayerData {
     name: String,
-    rcon_user: Option<String>,
 }
 
 enum ProtocolVersion {
@@ -31,6 +31,7 @@ enum ProtocolVersion {
 
 struct PlayerSlot {
     info: Option<PlayerData>,
+    rcon_user: Option<String>,
     ver: ProtocolVersion,
 }
 
@@ -65,18 +66,46 @@ fn process_file(p: &Path) -> Result<(), Error> {
                             tick = None;
                         }
                         libtw2_teehistorian::Item::Joinver6(j) => {
-                            assert!(players[j.cid as usize].is_none());
-                            players[j.cid as usize] = Some(PlayerSlot {
-                                info: None,
-                                ver: ProtocolVersion::DDNet,
-                            });
+                            // Invalidated by AuthInit special case...
+                            //assert!(players[j.cid as usize].is_none());
+
+                            let version = ProtocolVersion::DDNet;
+
+                            // Perhaps created by AuthInit, only update the version
+                            if let Some(ref mut p) = players[j.cid as usize] {
+                                if p.rcon_user.is_none() {
+                                    panic!("PlayerSlot already populated but not by AuthInit");
+                                }
+
+                                p.ver = version;
+                            } else {
+                                players[j.cid as usize] = Some(PlayerSlot {
+                                    info: None,
+                                    rcon_user: None,
+                                    ver: version,
+                                });
+                            }
                         }
                         libtw2_teehistorian::Item::Joinver7(j) => {
-                            assert!(players[j.cid as usize].is_none());
-                            players[j.cid as usize] = Some(PlayerSlot {
-                                info: None,
-                                ver: ProtocolVersion::Seven,
-                            });
+                            // Invalidated by AuthInit special case...
+                            //assert!(players[j.cid as usize].is_none());
+
+                            let version = ProtocolVersion::Seven;
+
+                            // Perhaps created by AuthInit, only update the version
+                            if let Some(ref mut p) = players[j.cid as usize] {
+                                if p.rcon_user.is_none() {
+                                    panic!("PlayerSlot already populated but not by AuthInit");
+                                }
+
+                                p.ver = version
+                            } else {
+                                players[j.cid as usize] = Some(PlayerSlot {
+                                    info: None,
+                                    rcon_user: None,
+                                    ver: version,
+                                });
+                            }
                         }
                         libtw2_teehistorian::Item::PlayerRejoin(j) => {
                             assert!(players[j.cid as usize].is_some());
@@ -91,8 +120,9 @@ fn process_file(p: &Path) -> Result<(), Error> {
                             // Edgecase: Join might be missing ddnet/ddnet#10046
                             //assert!(players[m.cid as usize].is_some());
                             if players[m.cid as usize].is_none() {
-                                players[m.cid as usize] = Some(PlayerSlot{
+                                players[m.cid as usize] = Some(PlayerSlot {
                                     info: None,
+                                    rcon_user: None,
                                     // This is just a hope, this information is lost
                                     ver: ProtocolVersion::DDNet,
                                 });
@@ -154,38 +184,40 @@ fn process_file(p: &Path) -> Result<(), Error> {
                             }
                         }
                         libtw2_teehistorian::Item::AuthInit(ai) => {
+                            // Wrong assumption, these happen before Join
+                            //assert!(players[ai.cid as usize].is_some());
+                            if players[ai.cid as usize].is_none() {
+                                players[ai.cid as usize] = Some(PlayerSlot {
+                                    info: None,
+                                    rcon_user: None,
+                                    // This will get replaced when the actual join happens
+                                    ver: ProtocolVersion::DDNet,
+                                })
+                            }
+
                             let p = players[ai.cid as usize].as_mut().unwrap();
-                            assert!(p.info.is_some());
 
                             unsafe {
-                                if let Some(info) = &mut p.info {
-                                    info.rcon_user =
-                                        Some(std::str::from_utf8_unchecked(ai.identity).into());
-                                }
+                                p.rcon_user =
+                                    Some(std::str::from_utf8_unchecked(ai.identity).into());
                             }
                         }
                         libtw2_teehistorian::Item::AuthLogin(al) => {
                             let p = players[al.cid as usize].as_mut().unwrap();
-                            assert!(
-                                p.info.is_some() && p.info.as_ref().unwrap().rcon_user.is_none()
-                            );
+                            assert!(p.rcon_user.is_none());
 
                             unsafe {
-                                if let Some(info) = &mut p.info {
-                                    info.rcon_user =
-                                        Some(std::str::from_utf8_unchecked(al.identity).into());
-                                }
+                                p.rcon_user =
+                                    Some(std::str::from_utf8_unchecked(al.identity).into());
                             }
                         }
                         libtw2_teehistorian::Item::AuthLogout(al) => {
-                            let p = players[al.cid as usize].as_mut().unwrap();
-                            assert!(
-                                p.info.is_some() && p.info.as_ref().unwrap().rcon_user.is_some()
-                            );
+                            assert!(players[al.cid as usize].is_some());
 
-                            if let Some(info) = &mut p.info {
-                                info.rcon_user = None;
-                            }
+                            let p = players[al.cid as usize].as_mut().unwrap();
+                            assert!(p.rcon_user.is_some());
+
+                            p.rcon_user = None;
                         }
                         libtw2_teehistorian::Item::ConsoleCommand(cc) => {
                             if cc.cid == -1 {
@@ -208,7 +240,7 @@ fn process_file(p: &Path) -> Result<(), Error> {
 
                             let info = p.info.as_ref().unwrap();
 
-                            if info.rcon_user.is_none() {
+                            if p.rcon_user.is_none() {
                                 continue;
                             }
 
@@ -218,7 +250,7 @@ fn process_file(p: &Path) -> Result<(), Error> {
                             unsafe {
                                 audit.push(AuditItem {
                                     timestamp,
-                                    rcon_user: info.rcon_user.clone().unwrap(),
+                                    rcon_user: p.rcon_user.clone().unwrap(),
                                     player_name: info.name.clone(),
                                     command: std::str::from_utf8_unchecked(cc.cmd).into(),
                                     country: country.to_owned(),
@@ -230,7 +262,9 @@ fn process_file(p: &Path) -> Result<(), Error> {
                     }
                 }
             }
-            Ok(None) | Err(Error::Teehistorian(UnexpectedEnd)) => {break;}
+            Ok(None) | Err(Error::Teehistorian(UnexpectedEnd)) => {
+                break;
+            }
             Err(e) => {
                 return Err(e);
             }
