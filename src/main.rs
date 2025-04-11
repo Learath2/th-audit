@@ -152,7 +152,12 @@ fn process_file(p: &Path) -> Result<(), Error> {
                                                 }
                                             }
                                             GameDDNet::ClChangeInfo(ci) => {
-                                                assert!(p.info.is_some());
+                                                // Wrong assumption
+                                                //assert!(p.info.is_some());
+                                                if p.info.is_none() {
+                                                    p.info = Some(Default::default());
+                                                }
+
                                                 unsafe {
                                                     if let Some(info) = &mut p.info {
                                                         info.name =
