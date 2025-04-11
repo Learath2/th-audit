@@ -114,7 +114,8 @@ fn process_file(p: &Path) -> Result<(), Error> {
                             p.info = None;
                         }*/
                         libtw2_teehistorian::Item::Drop(d) => {
-                            assert!(players[d.cid as usize].is_some());
+                            // Edgecase: Join might be missing ddnet/ddnet#10046
+                            //assert!(players[d.cid as usize].is_some());
                             players[d.cid as usize] = None;
                         }
                         libtw2_teehistorian::Item::Message(m) => {
