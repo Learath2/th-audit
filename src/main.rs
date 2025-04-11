@@ -213,7 +213,9 @@ fn process_file(p: &Path) -> Result<(), Error> {
                         }
                         libtw2_teehistorian::Item::AuthLogin(al) => {
                             let p = players[al.cid as usize].as_mut().unwrap();
-                            assert!(p.rcon_user.is_none());
+
+                            // Apparently can re-happen due to PlayerRejoin
+                            //assert!(p.rcon_user.is_none());
 
                             unsafe {
                                 p.rcon_user =
