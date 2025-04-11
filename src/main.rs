@@ -107,11 +107,12 @@ fn process_file(p: &Path) -> Result<(), Error> {
                                 });
                             }
                         }
-                        libtw2_teehistorian::Item::PlayerRejoin(j) => {
+                        // This appears to be wrong, info is kept over a rejoin
+                        /*libtw2_teehistorian::Item::PlayerRejoin(j) => {
                             assert!(players[j.cid as usize].is_some());
                             let p = players[j.cid as usize].as_mut().unwrap();
                             p.info = None;
-                        }
+                        }*/
                         libtw2_teehistorian::Item::Drop(d) => {
                             assert!(players[d.cid as usize].is_some());
                             players[d.cid as usize] = None;
