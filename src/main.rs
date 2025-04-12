@@ -226,7 +226,10 @@ fn process_file(p: &Path) -> Result<(), Error> {
                             assert!(players[al.cid as usize].is_some());
 
                             let p = players[al.cid as usize].as_mut().unwrap();
-                            assert!(p.rcon_user.is_some());
+                            // Edgecase: Timeouts generate log-outs for clients that aren't logged
+                            // in, iff the client taking over the old tee is logged in before using
+                            // the timeout
+                            //assert!(p.rcon_user.is_some());
 
                             p.rcon_user = None;
                         }
